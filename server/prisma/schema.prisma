@@ -7,6 +7,7 @@ generator client {
 // O Datasource define o tipo de banco (PostgreSQL)
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Seus modelos de dados para o IMCloud
