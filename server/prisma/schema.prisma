@@ -1,15 +1,15 @@
+// O Gerador define como o código JS será criado
 generator client {
   provider   = "prisma-client-js"
-  engineType = "library"
+  engineType = "library" // FORÇA O MOTOR COMPATIVEL COM O RENDER
 }
 
+// O Datasource define o tipo de banco (PostgreSQL)
 datasource db {
   provider = "postgresql"
 }
 
-// ... seus modelos User e ImcCalculation continuam abaixo
-
-// 3. Seus Modelos (Obrigatórios para criar as tabelas no Supabase)
+// Seus modelos de dados para o IMCloud
 model User {
   id        Int              @id @default(autoincrement())
   email     String           @unique
