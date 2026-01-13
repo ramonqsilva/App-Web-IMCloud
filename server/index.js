@@ -3,9 +3,10 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
-// Ajuste para a Versão 7: O Prisma já sabe a URL pelo prisma.config.ts
-const prisma = new PrismaClient();
+// Ajuste para atender a exigência da v7.2.0 por um objeto não vazio
+const prisma = new PrismaClient({
+    log: ['info', 'query', 'warn', 'error']
+});
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+// ... restante do código
