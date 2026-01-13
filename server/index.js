@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -10,7 +12,15 @@ const prisma = new PrismaClient({
 });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:5173',
+        'https://imcloud.vercel.app'
+    ],
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+}));
+
 app.use(express.json());
 
 // Rota de Registro (Cadastro)
@@ -24,6 +34,34 @@ app.post('/register', async (req, res) => {
         res.json({ message: "Usuário criado!", id: user.id });
     } catch (e) {
         res.status(400).json({ error: "E-mail já cadastrado." });
+    }
+});
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            return res.status(401).json({ error: 'Usuário não encontrado' });
+        }
+
+        const validPassword = await bcrypt.compare(password, user.password);
+
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Senha inválida' });
+        }
+
+        res.json({
+            message: 'Login realizado com sucesso',
+            userId: user.id
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro no login' });
     }
 });
 

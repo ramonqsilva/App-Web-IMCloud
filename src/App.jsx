@@ -11,30 +11,42 @@ export default function App() {
     const [searchTerm, setSearchTerm] = useState('');
     const [history, setHistory] = useState([]);
 
-    const API_URL = 'http://localhost:3001';
+    const API_URL = 'https://imcloud-api.onrender.com';
+
 
     // FUNÇÃO DE LOGIN / REGISTRO REAL
     const handleLogin = async (e) => {
         e.preventDefault();
+
         try {
-            const response = await fetch(`${API_URL}/register`, {
+            let response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(user)
             });
+
+            if (response.status === 401) {
+                response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(user)
+                });
+            }
+
             const data = await response.json();
 
-            if (response.ok) {
-                setUserId(data.id);
-                setIsLoggedIn(true);
-                // Aqui você poderia buscar o histórico inicial do banco
-            } else {
-                alert(data.error || "Erro ao entrar");
+            if (!response.ok) {
+                return alert(data.error || 'Erro');
             }
-        } catch (error) {
-            alert("Servidor offline. Verifique o Node.js");
+
+            setUserId(data.userId || data.id);
+            setIsLoggedIn(true);
+
+        } catch {
+            alert('Erro ao conectar com o servidor');
         }
     };
+
 
     // FUNÇÃO DE CÁLCULO VIA API
     const calculateIMC = async (e) => {
@@ -78,8 +90,10 @@ export default function App() {
                 setHeight('');
             }
         } catch (error) {
-            alert("Erro ao calcular no servidor");
+            console.error(error);
+            alert('Erro ao conectar com a API');
         }
+
     };
 
     // Filtro dinâmico (Mantido igual, mas agora com dados do banco)
