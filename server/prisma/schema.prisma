@@ -1,4 +1,29 @@
+// 1. O Gerador (Obrigatório para o Node.js encontrar o Prisma)
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 2. A Fonte de Dados (Sem a URL, que agora está no config.ts)
 datasource db {
   provider = "postgresql"
-  // A URL agora é gerenciada pelo prisma.config.ts
+}
+
+// 3. Seus Modelos (Obrigatórios para criar as tabelas no Supabase)
+model User {
+  id        Int              @id @default(autoincrement())
+  email     String           @unique
+  password  String
+  history   ImcCalculation[]
+}
+
+model ImcCalculation {
+  id        Int      @id @default(autoincrement())
+  order     Int
+  weight    Float
+  height    Float
+  imcValue  Float
+  status    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
 }
