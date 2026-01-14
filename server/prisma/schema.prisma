@@ -1,21 +1,18 @@
-// O Gerador define como o código JS será criado
 generator client {
   provider   = "prisma-client-js"
-  engineType = "library" // FORÇA O MOTOR COMPATIVEL COM O RENDER
+  engineType = "library"
 }
 
-// O Datasource define o tipo de banco (PostgreSQL)
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Seus modelos de dados para o IMCloud
 model User {
-  id        Int              @id @default(autoincrement())
-  email     String           @unique
-  password  String
-  history   ImcCalculation[]
+  id      Int              @id @default(autoincrement())
+  email   String           @unique
+  password String
+  history ImcCalculation[]
 }
 
 model ImcCalculation {
@@ -26,6 +23,6 @@ model ImcCalculation {
   imcValue  Float
   status    String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
   userId    Int
+  user      User     @relation(fields: [userId], references: [id])
 }

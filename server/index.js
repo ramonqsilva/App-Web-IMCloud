@@ -1,41 +1,62 @@
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { PrismaClient } = require('@prisma/client');
 
-// Ajuste para atender a exigência da v7.2.0 por um objeto não vazio
-// E permitir visualizar as operações no log do Render
 const prisma = new PrismaClient({
-    log: ['info', 'query', 'warn', 'error']
+    log: ['info', 'warn', 'error']
 });
 
 const app = express();
+
+/* =========================
+   CORS – VERCEL + LOCAL
+========================= */
 app.use(cors({
     origin: [
-        'http://localhost:5173',
         'https://imcloud.vercel.app'
     ],
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: ['Content-Type']
 }));
 
 app.use(express.json());
 
-// Rota de Registro (Cadastro)
+/* =========================
+   REGISTER
+========================= */
 app.post('/register', async (req, res) => {
     const { email, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         const user = await prisma.user.create({
-            data: { email, password: hashedPassword }
+            data: {
+                email,
+                password: hashedPassword
+            }
         });
-        res.json({ message: "Usuário criado!", id: user.id });
-    } catch (e) {
-        res.status(400).json({ error: "E-mail já cadastrado." });
+
+        res.json({
+            id: user.id,
+            email: user.email
+        });
+
+    } catch (error) {
+        if (error.code === 'P2002') {
+            return res.status(400).json({ error: 'E-mail já cadastrado' });
+        }
+
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao registrar usuário' });
     }
 });
+
+/* =========================
+   LOGIN
+========================= */
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -55,50 +76,82 @@ app.post('/login', async (req, res) => {
         }
 
         res.json({
-            message: 'Login realizado com sucesso',
-            userId: user.id
+            id: user.id,
+            email: user.email
         });
 
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro no login' });
     }
 });
 
-// Rota de Cálculo e Salvamento
+/* =========================
+   CALCULATE IMC
+========================= */
 app.post('/calculate', async (req, res) => {
     const { weight, height, userId } = req.body;
 
-    // Lógica do IMC: Peso / (Altura * Altura)
     const imc = (weight / ((height / 100) ** 2)).toFixed(2);
-    let status = imc < 18.5 ? "Magreza" : imc < 24.9 ? "Peso normal" : imc < 29.9 ? "Sobrepeso" : "Obesidade";
+
+    let status =
+        imc < 18.5 ? 'Magreza' :
+            imc < 24.9 ? 'Peso normal' :
+                imc < 29.9 ? 'Sobrepeso' :
+                    'Obesidade';
 
     try {
-        // Busca a última ordem para incrementar
-        const lastEntry = await prisma.imcCalculation.findFirst({
+        const last = await prisma.imcCalculation.findFirst({
             where: { userId: Number(userId) },
             orderBy: { order: 'desc' }
         });
-        const nextOrder = lastEntry ? lastEntry.order + 1 : 1;
+
+        const nextOrder = last ? last.order + 1 : 1;
 
         const entry = await prisma.imcCalculation.create({
             data: {
                 order: nextOrder,
-                weight: parseFloat(weight),
-                height: parseFloat(height),
-                imcValue: parseFloat(imc),
+                weight: Number(weight),
+                height: Number(height),
+                imcValue: Number(imc),
                 status,
                 userId: Number(userId)
             }
         });
 
         res.json(entry);
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Erro ao salvar cálculo." });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao salvar cálculo' });
     }
 });
 
-// O Render exige o uso de process.env.PORT
+/* =========================
+   HISTORY
+========================= */
+app.get('/history/:userId', async (req, res) => {
+    const userId = Number(req.params.userId);
+
+    try {
+        const history = await prisma.imcCalculation.findMany({
+            where: { userId },
+            orderBy: { order: 'desc' }
+        });
+
+        res.json(history);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar histórico' });
+    }
+});
+
+/* =========================
+   SERVER
+========================= */
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
